@@ -1863,7 +1863,7 @@
         Disk Image file
     </summary>
     <extensions>
-        vdi, vmdk, vhd, iso, vco
+        vdi, vmdk, iso, vco
     </extensions>
     <weight>
         40
@@ -2339,6 +2339,9 @@
     <weight>
         40
     </weight>
+    <format>
+        Text
+    </format>
 </type>
 
 <type>
@@ -4159,4 +4162,21 @@
     </weight>
 </type>
 
+<type>
+    <id>
+        RTL_SOURCE
+    </id>
+    <summary>
+        RTL source
+    </summary>
+    <extensions>
+        vhd, vhdl, sv
+    </extensions>
+    <weight>
+        90
+    </weight>
+    <format>
+        Text
+    </format>
+</type>
 </files>
