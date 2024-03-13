@@ -675,9 +675,9 @@ sub compareSymbols($$)
     return $Changed;
 }
 
-sub compareFiles($$$$)
+sub compareFiles($$$$$$)
 {
-    my ($P1, $P2, $N1, $N2) = @_;
+    my ($V1, $V2, $P1, $P2, $N1, $N2) = @_;
     if(not -f $P1
     or not -f $P2)
     {
@@ -734,7 +734,7 @@ sub compareFiles($$$$)
     }
     elsif(defined $FormatInfo{$Format}{"Format"}
     and $FormatInfo{$Format}{"Format"} eq "PDF") {
-        ($DLink, $Rate) = diffPDFFiles($P1, $P2, getRPath("diffs", $N1));
+        ($DLink, $Rate) = diffPDFFiles($V1, $V2, $P1, $P2, getRPath("diffs", $N1));
     }
     elsif($Format eq "LICENSE"
     or $Format eq "CHANGELOG"
@@ -1174,9 +1174,9 @@ sub getSize($)
     return ($Cache{"getSize"}{$Path} = -s $Path);
 }
 
-sub diffPDFFiles($$$)
+sub diffPDFFiles($$$$$)
 {
-    my ($P1, $P2, $Path) = @_;
+    my ($V1, $V2, $P1, $P2, $Path) = @_;
 
     if(not $P1 or not $P2) {
         return ();
@@ -1187,8 +1187,8 @@ sub diffPDFFiles($$$)
     my $TmpPath = $TMP_DIR."/diff";
     unlink($TmpPath);
 
-    system("pdftotext \"".$P1."\" \"".getDirname($Path)."/first.txt\"");
-    system("pdftotext \"".$P2."\" \"".getDirname($Path)."/second.txt\"");
+    system("pdftotext \"".$P1."\" \"".getDirname($Path)."/".getFilename($P1)."_".$V1.".txt\"");
+    system("pdftotext \"".$P2."\" \"".getDirname($Path)."/".getFilename($P2)."_".$V2.".txt\"");
 
     my $Cmd = "sh $DIFF --width $DiffWidth --stdout";
     $Cmd .= " --tmpdiff \"$TmpPath\" --prelines $DiffLines";
@@ -1210,7 +1210,7 @@ sub diffPDFFiles($$$)
         $Cmd .= " --nowdiff";
     }
 
-    $Cmd .= " \"".getDirname($Path)."/first.txt\" \"".getDirname($Path)."/second.txt\" >\"".$Path."\" 2>$TMP_DIR/null";
+    $Cmd .= " \"".getDirname($Path)."/".getFilename($P1)."_".$V1.".txt\" \"".getDirname($Path)."/".getFilename($P2)."_".$V2.".txt\" >\"".$Path."\" 2>$TMP_DIR/null";
     $Cmd=~s/\$/\\\$/g;
 
     qx/$Cmd/;
@@ -1530,8 +1530,9 @@ sub skipFile($)
     return 0;
 }
 
-sub detectChanges()
+sub detectChanges($$)
 {
+    my ($V1, $V2) = @_;
     foreach my $E ("info-diffs", "diffs") {
         mkpath($REPORT_DIR."/".$E);
     }
@@ -1711,7 +1712,7 @@ sub detectChanges()
             $NewPath = $PackageFiles{2}{$NewName};
         }
         
-        my ($Changed, $DLink, $RLink, $Rate, $Adv) = compareFiles($Path, $NewPath, $Name, $NewName);
+        my ($Changed, $DLink, $RLink, $Rate, $Adv) = compareFiles($V1, $V2, $Path, $NewPath, $Name, $NewName);
         my %Details = %{$Adv};
         
         if($Changed==1 or $Changed==3)
@@ -4187,7 +4188,7 @@ sub scenario()
         printMsg("INFO", "Comparing packages ...");
     }
     
-    detectChanges();
+    detectChanges($Group{"V1"},$Group{"V2"});
     createReport($REPORT_PATH);
     
     foreach my $E ("info-diffs", "diffs", "details")
