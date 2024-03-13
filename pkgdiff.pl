@@ -732,6 +732,10 @@ sub compareFiles($$$$)
     and $FormatInfo{$Format}{"Format"} eq "Text") {
         ($DLink, $Rate) = diffFiles($P1, $P2, getRPath("diffs", $N1));
     }
+    elsif(defined $FormatInfo{$Format}{"Format"}
+    and $FormatInfo{$Format}{"Format"} eq "PDF") {
+        ($DLink, $Rate) = diffPDFFiles($P1, $P2, getRPath("diffs", $N1));
+    }
     elsif($Format eq "LICENSE"
     or $Format eq "CHANGELOG"
     or $Format eq "README"
@@ -1168,6 +1172,72 @@ sub getSize($)
         return ($Cache{"getSize"}{$Path} = length(getType($Path)));
     }
     return ($Cache{"getSize"}{$Path} = -s $Path);
+}
+
+sub diffPDFFiles($$$)
+{
+    my ($P1, $P2, $Path) = @_;
+
+    if(not $P1 or not $P2) {
+        return ();
+    }
+
+    mkpath(getDirname($Path));
+
+    my $TmpPath = $TMP_DIR."/diff";
+    unlink($TmpPath);
+
+    system("pdftotext \"".$P1."\" \"".getDirname($Path)."/first.txt\"");
+    system("pdftotext \"".$P2."\" \"".getDirname($Path)."/second.txt\"");
+
+    my $Cmd = "sh $DIFF --width $DiffWidth --stdout";
+    $Cmd .= " --tmpdiff \"$TmpPath\" --prelines $DiffLines";
+
+    if($IgnoreSpaceChange) {
+        $Cmd .= " --ignore-space-change";
+    }
+    if($IgnoreAllSpace) {
+        $Cmd .= " --ignore-all-space";
+    }
+    if($IgnoreBlankLines) {
+        $Cmd .= " --ignore-blank-lines";
+    }
+    if($Minimal)
+    { # diff --minimal
+        $Cmd .= " --minimal";
+    }
+    if($NoWdiff) {
+        $Cmd .= " --nowdiff";
+    }
+
+    $Cmd .= " \"".getDirname($Path)."/first.txt\" \"".getDirname($Path)."/second.txt\" >\"".$Path."\" 2>$TMP_DIR/null";
+    $Cmd=~s/\$/\\\$/g;
+
+    qx/$Cmd/;
+
+    if(getSize($Path)<3500)
+    { # may be identical
+        if(readFilePart($Path, 2)=~/The files are identical/i)
+        {
+            return ();
+        }
+    }
+
+    if(getSize($Path)<3100)
+    { # may be identical or non-text
+        if(index(readFile($Path), "No changes")!=-1)
+        {
+            unlink($Path);
+            return ();
+        }
+    }
+
+    my $Rate = getRate($P1, $P2, $TmpPath);
+
+    # clean space
+    unlink($TmpPath);
+
+    return ($Path, $Rate);
 }
 
 sub diffFiles($$$)

@@ -3852,6 +3852,9 @@
     <weight>
         30
     </weight>
+    <format>
+        PDF
+    </format>
 </type>
 
 <type>
