@@ -1189,6 +1189,8 @@ sub diffPDFFiles($$$$$)
 
     system("pdftotext \"".$P1."\" \"".getDirname($Path)."/".getFilename($P1)."_".$V1.".txt\"");
     system("pdftotext \"".$P2."\" \"".getDirname($Path)."/".getFilename($P2)."_".$V2.".txt\"");
+    system("sed -i '/Changed in background description/d' \"".getDirname($Path)."/".getFilename($P1)."_".$V1.".txt\"");
+    system("sed -i '/Changed in background description/d' \"".getDirname($Path)."/".getFilename($P2)."_".$V2.".txt\"");
 
     my $Cmd = "sh $DIFF --width $DiffWidth --stdout";
     $Cmd .= " --tmpdiff \"$TmpPath\" --prelines $DiffLines";
