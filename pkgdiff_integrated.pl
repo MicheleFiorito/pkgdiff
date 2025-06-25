@@ -45,6 +45,69 @@
 ###########################################################################
 use strict;
 use Getopt::Long;
+
+# BEGIN: TAR.GZ Extraction + Normalization Integration
+use File::Find;
+use File::Copy;
+use Cwd 'abs_path';
+
+sub normalize_folders {
+    my ($root) = @_;
+    my @to_rename;
+
+    find(
+        sub {
+            return unless -d $_;
+            my $original = $File::Find::name;
+            my $new = $original;
+            $new =~ s/-r\d{8}(-\w+)?//;
+
+            if ($original ne $new && ! -e $new) {
+                push @to_rename, [$original, $new];
+            }
+        },
+        $root
+    );
+
+    foreach my $pair (@to_rename) {
+        my ($src, $dst) = @$pair;
+        rename $src, $dst or warn "⚠️ Failed to rename $src → $dst: $!";
+        print "✅ Renamed: $src → $dst\n";
+    }
+}
+
+# Check if we received two tar.gz inputs
+my ($pkg1, $pkg2) = @ARGV;
+
+if ($pkg1 =~ /\.tar\.gz$/ and $pkg2 =~ /\.tar\.gz$/) {
+    print "📦 Detected archive inputs. Preparing...\n";
+
+    # Create temp dirs
+    system("rm -rf /tmp/pkg_old /tmp/pkg_new");
+    system("mkdir -p /tmp/pkg_old /tmp/pkg_new");
+
+    # Extract top-level archives
+    system("tar -xzf $pkg1 -C /tmp/pkg_old");
+    system("tar -xzf $pkg2 -C /tmp/pkg_new");
+
+    # Try to extract inner archives
+    system("mkdir -p /tmp/pkg_old/sicrypto-lib /tmp/pkg_new/sicrypto-lib");
+    system("tar -xzf /tmp/pkg_old/sicrypto-lib-*.tar.gz -C /tmp/pkg_old/sicrypto-lib 2>/dev/null");
+    system("tar -xzf /tmp/pkg_new/sicrypto-lib-*.tar.gz -C /tmp/pkg_new/sicrypto-lib 2>/dev/null");
+
+    # Remove all .tar.gz files
+    system("find /tmp/pkg_old -name '*.tar.gz' -delete");
+    system("find /tmp/pkg_new -name '*.tar.gz' -delete");
+
+    # Normalize folder names
+    normalize_folders("/tmp/pkg_old");
+    normalize_folders("/tmp/pkg_new");
+
+    # Override inputs
+    @ARGV = ("/tmp/pkg_old", "/tmp/pkg_new");
+}
+# END: TAR.GZ Extraction + Normalization Integration
+
 Getopt::Long::Configure ("posix_default", "no_ignore_case", "permute");
 use File::Path qw(mkpath rmtree);
 use File::Temp qw(tempdir);
