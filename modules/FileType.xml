@@ -3829,7 +3829,7 @@
         Configuration file
     </summary>
     <extensions>
-        conf, config, cfg, cnf, inf, INF, sysconf, sysconfig, rules
+        conf, config, cnf, inf, INF, sysconf, sysconfig, rules
     </extensions>
     <names>
         Config, config
@@ -3841,6 +3841,20 @@
         Text
     </format>
 </type>
+<!--
+  Custom type definition to treat `.cfg` files as binary input files.
+  This override ensures `.cfg` files are no longer misclassified as configuration/text
+  and are instead handled as binary content by pkgdiff.pl.
+-->
+<type>
+  <id>BINARY</id>
+  <summary>Binary files</summary>
+  <extensions>cfg</extensions>
+  <weight>90</weight>
+  <format>Binary</format>
+</type>
+
+
 
 <type>
     <id>
